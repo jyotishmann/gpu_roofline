@@ -1,4 +1,4 @@
-# src/harness/device.py — Project 00 device-probe module (built across cells 1.1–1.9)
+# src/harness/device.py — device-probe module
 import torch
 
 from dataclasses import dataclass, asdict

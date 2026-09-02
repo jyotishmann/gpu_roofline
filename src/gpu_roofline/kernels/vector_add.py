@@ -1,4 +1,4 @@
-# src/kernels/vector_add.py — first CUDA kernel, built across cells 2.1–2.5
+# src/kernels/vector_add.py — initial CUDA kernel
 
 import torch
 from torch.utils.cpp_extension import load_inline
