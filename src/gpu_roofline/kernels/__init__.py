@@ -1,1 +1,1 @@
-from .vector_add import add
+from .vector_add import add as add
