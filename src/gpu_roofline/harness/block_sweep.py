@@ -2,7 +2,7 @@
 
 import torch
 from torch.utils.cpp_extension import load_inline
-from harness.timing import benchmark, BenchResult
+from harness.timing import benchmark # ignore[misc]
 
 import json
 import pathlib
