@@ -3,3 +3,4 @@ from .reduction import make_reducer, assert_reduction_correct, benchmark_reducti
 from . import reduce_l2
 from . import reduce_l3
 from . import reduce_l4
+from . import reduce_l5
