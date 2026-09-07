@@ -71,8 +71,8 @@ _mod = load_inline(
 BLOCK = 256
 
 
-def make_reducer(n: int, device: str = "cuda", launch=_mod.reduce_l1_launch):
-    """Return a closure that reduces an n-element tensor via pre-allocated ping-pong buffers."""
+"""def make_reducer(n: int, device: str = "cuda", launch=_mod.reduce_l1_launch):
+    '''Return a closure that reduces an n-element tensor via pre-allocated ping-pong buffers.'''
     g1 = (n + BLOCK - 1) // BLOCK
     buf_a = torch.empty(g1, device=device, dtype=torch.float32)
     buf_b = torch.empty((g1 + BLOCK - 1) // BLOCK, device=device, dtype=torch.float32)
@@ -86,7 +86,25 @@ def make_reducer(n: int, device: str = "cuda", launch=_mod.reduce_l1_launch):
             src, a, b = dst, b, a                # ping-pong
         return src
     return reduce
+"""
 
+
+# make_reducer with this tile-aware version (default tile=BLOCK)
+def make_reducer(n, launch=_mod.reduce_l1_launch, tile: int = BLOCK, device: str = "cuda"):
+    """Two-pass reducer; `tile` = elements one block reduces (BLOCK for L1–3, 2*BLOCK for L4+)."""
+    g1 = (n + tile - 1) // tile
+    buf_a = torch.empty(g1, device=device, dtype=torch.float32)
+    buf_b = torch.empty((g1 + tile - 1) // tile, device=device, dtype=torch.float32)
+
+    def reduce(x):
+        src, a, b = x.contiguous(), buf_a, buf_b
+        while src.numel() > 1:
+            grid = (src.numel() + tile - 1) // tile
+            dst = a[:grid]
+            launch(src, dst)
+            src, a, b = dst, b, a
+        return src
+    return reduce  # tile defaults to BLOCK, so L1–3 callers are unaffected
 
 
 def benchmark_reduction(name: str, reduce_fn, x: torch.Tensor, dev, iters: int = 100):
