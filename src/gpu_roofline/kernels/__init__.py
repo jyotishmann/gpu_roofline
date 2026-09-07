@@ -6,3 +6,4 @@ from . import reduce_l4
 from . import reduce_l5
 from . import reduce_l6
 from . import reduce_l7
+from . import reduce_shuffle
