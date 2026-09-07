@@ -4,3 +4,4 @@ from .timing import time_kernel as time_kernel, benchmark as benchmark, BenchRes
 from .transfer import run_transfer_benchmarks as run_transfer_benchmarks, print_transfer_table as print_transfer_table, TransferResult as TransferResult
 from .block_sweep import sweep_block_sizes as sweep_block_sizes, occupancy_grid as occupancy_grid, theoretical_occupancy as theoretical_occupancy
 from .roofline import build_project00_report as build_project00_report, attainable_gflops as attainable_gflops
+from .climb import build_project01_report

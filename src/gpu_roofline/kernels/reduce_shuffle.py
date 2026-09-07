@@ -207,4 +207,4 @@ if __name__ == "__main__":
               f"({r.pct_peak_bw:.1f}% peak)  {r.median_ms:.3f} ms")
     tbl = write_comparison_table(n, results, dev)
     print(f"\nComparison table written to {tbl}")
-    persist_level(results["shuffle_kernel"], level=8)
+    persist_level(results["shuffle_kernel"], level=8)  # keyed by level for the climb chart
