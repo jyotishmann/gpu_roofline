@@ -12,3 +12,4 @@ from .sgemm_tiled import sgemm_tiled
 from .sgemm_coarsened import sgemm_coarsened
 from .sgemm_vectorized import sgemm_vectorized
 from .sgemm_db import sgemm_db
+from .sgemm_tuned import sgemm_tuned, run_autotune_sweep, _CANDIDATES, is_valid, smem_bytes
