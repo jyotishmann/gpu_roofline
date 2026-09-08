@@ -7,3 +7,4 @@ from . import reduce_l5
 from . import reduce_l6
 from . import reduce_l7
 from . import reduce_shuffle
+from .sgemm_naive import sgemm, assert_sgemm_correct, gemm_bytes_and_flops, persist_level, print_gemm_report
