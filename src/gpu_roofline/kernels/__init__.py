@@ -10,3 +10,4 @@ from . import reduce_shuffle
 from .sgemm_naive import sgemm, assert_sgemm_correct, gemm_bytes_and_flops, persist_level, print_gemm_report
 from .sgemm_tiled import sgemm_tiled
 from .sgemm_coarsened import sgemm_coarsened
+from .sgemm_vectorized import sgemm_vectorized
