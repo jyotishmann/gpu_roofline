@@ -11,3 +11,4 @@ from .sgemm_naive import sgemm, assert_sgemm_correct, gemm_bytes_and_flops, pers
 from .sgemm_tiled import sgemm_tiled
 from .sgemm_coarsened import sgemm_coarsened
 from .sgemm_vectorized import sgemm_vectorized
+from .sgemm_db import sgemm_db
