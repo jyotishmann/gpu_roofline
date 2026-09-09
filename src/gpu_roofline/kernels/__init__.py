@@ -16,3 +16,6 @@ from .sgemm_tuned import sgemm_tuned, run_autotune_sweep, _CANDIDATES, is_valid,
 from .attn_naive import (naive_attention, assert_attention_correct,
       naive_hbm_bytes, flash_hbm_bytes, io_ratio, attention_flops,
       benchmark_attention, print_attention_report, persist_result)
+from .online_softmax import (online_attention_single_query,
+                              online_attention_blocked,
+                              verify_online_softmax)
