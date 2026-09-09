@@ -20,3 +20,4 @@ from .online_softmax import (online_attention_single_query,
                               online_attention_blocked,
                               verify_online_softmax)
 from .flash_fwd import flash_fwd
+from .flash_fwd_causal import flash_fwd_causal
