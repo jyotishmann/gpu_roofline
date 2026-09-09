@@ -13,3 +13,6 @@ from .sgemm_coarsened import sgemm_coarsened
 from .sgemm_vectorized import sgemm_vectorized
 from .sgemm_db import sgemm_db
 from .sgemm_tuned import sgemm_tuned, run_autotune_sweep, _CANDIDATES, is_valid, smem_bytes
+from .attn_naive import (naive_attention, assert_attention_correct,
+      naive_hbm_bytes, flash_hbm_bytes, io_ratio, attention_flops,
+      benchmark_attention, print_attention_report, persist_result)
