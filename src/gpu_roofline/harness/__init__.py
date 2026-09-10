@@ -6,3 +6,4 @@ from .block_sweep import sweep_block_sizes as sweep_block_sizes, occupancy_grid 
 from .roofline import build_project00_report as build_project00_report, attainable_gflops as attainable_gflops
 from .climb import build_project01_report
 from .parity import build_project02_report
+from .fa_parity import build_project03_report
