@@ -7,3 +7,4 @@ from .roofline import build_project00_report as build_project00_report, attainab
 from .climb import build_project01_report
 from .parity import build_project02_report
 from .fa_parity import build_project03_report
+from .tier2_closure import build_tier2_report
