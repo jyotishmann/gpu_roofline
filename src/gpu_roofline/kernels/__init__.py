@@ -21,3 +21,4 @@ from .online_softmax import (online_attention_single_query,
                               verify_online_softmax)
 from .flash_fwd import flash_fwd
 from .flash_fwd_causal import flash_fwd_causal
+from .triton_hello import triton_add, check_triton_env, verify_triton_hello
