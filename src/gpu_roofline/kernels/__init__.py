@@ -22,3 +22,4 @@ from .online_softmax import (online_attention_single_query,
 from .flash_fwd import flash_fwd
 from .flash_fwd_causal import flash_fwd_causal
 from .triton_hello import triton_add, check_triton_env, verify_triton_hello
+from .triton_attn import flash_attn_triton_v1
