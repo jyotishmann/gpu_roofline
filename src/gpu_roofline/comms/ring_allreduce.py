@@ -1,5 +1,9 @@
 # src/comms/ring_allreduce.py — ring all-reduce (reduce-scatter + all-gather)
 import torch
+import json, pathlib
+from gpu_roofline.comms.naive_allreduce import (make_workers, allreduce_bytes_naive,
+                                    benchmark_allreduce, persist_ar_result, naive_allreduce)
+from gpu_roofline.comms.naive_allreduce import assert_allreduce_correct
 
 
 def reduce_scatter_ring(state: torch.Tensor, streams: list) -> torch.Tensor:
@@ -53,8 +57,75 @@ def assert_reduce_scatter_correct(N: int = 4, P: int = 64) -> None:
     print(f"[ok] reduce-scatter: state[i][chunk i] = sum of chunk i  (N={N}, P={P})")
 
 
-if __name__ == "__main__":
+def all_gather_ring(state: torch.Tensor, streams: list) -> torch.Tensor:
+    """
+    Phase 2 of ring all-reduce: N-1 copy steps to distribute the reduced chunks.
+    Precondition: state[i][chunk i] holds the fully-reduced sum (from reduce-scatter).
+    Postcondition: state[i] == state[j] for all i, j (all workers have the full result).
+    """
+    N, P = state.shape
+    chunk = P // N
+    for s in range(N - 1):
+        for i in range(N):
+            # The chunk we currently hold that is "ready" to share
+            send_chunk = (i - s + 1) % N     # +1: after reduce-scatter we own chunk i
+            src = (i - 1) % N
+            recv_chunk = (i - s) % N
+            with torch.cuda.stream(streams[i]):
+                state[i, recv_chunk*chunk:(recv_chunk+1)*chunk].copy_(
+                    state[src, recv_chunk*chunk:(recv_chunk+1)*chunk],
+                    non_blocking=True)
+        for i in range(N):
+            streams[i].synchronize()
+    return state   # state[i] == full reduced gradient for all i
+
+
+def ring_allreduce(state: torch.Tensor) -> torch.Tensor:
+    """Complete ring all-reduce: reduce-scatter + all-gather."""
+    N = state.shape[0]
+    streams = [torch.cuda.Stream() for _ in range(N)]
+    reduce_scatter_ring(state, streams)
+    state /= N            # normalise after reduce-scatter (before broadcasting)
+    all_gather_ring(state, streams)
+    return state
+
+
+def verify_ring_allreduce() -> None:
+    assert_allreduce_correct(ring_allreduce, N=4,  P=1024)
+    assert_allreduce_correct(ring_allreduce, N=8,  P=2048)
+    assert_allreduce_correct(ring_allreduce, N=4,  P=4097)  # non-round P — tests boundary handling
+    print("[ok] ring_allreduce end-to-end correct for N=4, N=8, and non-round P")
+
+
+def run_reduce_scatter_checks() -> None:
+    """Phase-1 correctness gate. Called from the p05/03 __main__ before the full ring test."""
     assert_reduce_scatter_correct(N=4, P=64)
     assert_reduce_scatter_correct(N=8, P=256)
     print("[ok] reduce-scatter phase verified for N=4 and N=8")
-    print("Next: p05/03 adds the all-gather phase to complete ring all-reduce.")
+
+
+def allreduce_bytes_ring(N: int, P: int) -> dict:
+    """Bytes sent+received per worker in ring: 2(N-1)/N x P x 4, equally across all."""
+    per_worker_bytes = 2 * (N - 1) * P * 4 // N
+    return {i: per_worker_bytes for i in range(N)}
+
+
+if __name__ == "__main__":
+    # Phase 1 regression (reduce-scatter must still pass after all-gather is added)
+    run_reduce_scatter_checks()
+
+    # Phase 2 + full ring
+    verify_ring_allreduce()
+
+    from gpu_roofline.harness.device import probe_device
+    dev = probe_device()
+    
+    P = 1 << 22                             # 4M floats ≈ 16 MB — latency-amortised regime
+    print(f"\nBandwidth comparison  (P={P//1024}K floats, N=4, peak={dev.peak_bw_gbps:.0f} GB/s):")
+    r_naive = benchmark_allreduce(naive_allreduce, 4, P, dev)
+    r_ring  = benchmark_allreduce(ring_allreduce,  4, P, dev)
+    print(f"  naïve : root={r_naive['root_bw_gbps']:.0f} GB/s, leaf={r_naive['leaf_bw_gbps']:.0f} GB/s")
+    ring_bw = allreduce_bytes_ring(4, P)[0] / r_ring["median_s"] / 1e9
+    print(f"  ring  : all workers ≈ {ring_bw:.0f} GB/s  (target: ~{dev.peak_bw_gbps:.0f})")
+    r_ring["name"] = "ring_allreduce_N4"
+    persist_ar_result(r_ring)
