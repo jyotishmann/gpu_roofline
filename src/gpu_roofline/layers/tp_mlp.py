@@ -65,7 +65,7 @@ def assert_tp_mlp_correct(N: int = 4, B: int = 8, d: int = 64, h: int = 256) -> 
 
 def count_allreduce_calls(N: int = 4, B: int = 8, d: int = 64, h: int = 256) -> None:
     """Monkey-patch sum_allreduce to count calls; assert exactly 1 per forward pass."""
-    import layers.tp_linear as tp_mod
+    import gpu_roofline.layers.tp_linear as tp_mod
     original_ar = tp_mod.sum_allreduce
     call_count  = [0]
     def counting_ar(t):
