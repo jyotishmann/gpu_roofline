@@ -1,4 +1,5 @@
 from .api import DeviceSpec, KernelConfig, predict_configs, autotune, run
+from .tiles import TileLayout, DeviceSpec_from_probe, is_feasible, enumerate_candidate_configs
 
 def _smoke_test_api() -> None:
     """Verify the API stubs are type-correct (raise NotImplementedError, not TypeError)."""
