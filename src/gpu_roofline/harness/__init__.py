@@ -10,3 +10,4 @@ from .fa_parity import build_project03_report
 from .tier2_closure import build_tier2_report
 from .ar_parity import build_project05_report
 from .tp_parity import build_project06_report
+from .kv_parity import build_tier3_closure
