@@ -1,4 +1,4 @@
-# src/gemm/blackwell_analysis.py — Blackwell co-design analysis
+# src/gpu_roofline/gemm/blackwell_analysis.py — Blackwell co-design analysis
 _BLACKWELL_ANALYSIS = """
 # Blackwell Co-Design Analysis
 *Applying the gpu-mastery performance models to NVIDIA B200 (Blackwell, 2024)*

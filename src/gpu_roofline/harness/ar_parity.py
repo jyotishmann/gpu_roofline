@@ -1,4 +1,4 @@
-# src/harness/ar_parity.py — comparison runner and project closure
+# src/gpu_roofline/harness/ar_parity.py — comparison runner and project closure
 import sys
 from gpu_roofline.harness.device import probe_device
 from gpu_roofline.comms.overlap import overlap_demo, compare_to_nccl, write_ar_report

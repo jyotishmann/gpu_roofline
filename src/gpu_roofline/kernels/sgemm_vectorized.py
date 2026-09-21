@@ -5,7 +5,7 @@ from torch.utils.cpp_extension import load_inline
 import sys
 from gpu_roofline.harness.device import probe_device
 from gpu_roofline.harness.timing import benchmark
-from .sgemm_naive import (assert_sgemm_correct, gemm_bytes_and_flops,
+from gpu_roofline.kernels.sgemm_naive import (assert_sgemm_correct, gemm_bytes_and_flops,
                            persist_level, print_gemm_report)
 
 _BM, _BN, _BK, _WM, _WN = 128, 128, 32, 4, 4   # BK=32 to pair with float4 loading

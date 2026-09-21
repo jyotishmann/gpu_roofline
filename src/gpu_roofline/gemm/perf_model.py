@@ -1,4 +1,4 @@
-# src/gemm/perf_model.py — performance model for the autotuning library
+# src/gpu_roofline/gemm/perf_model.py — performance model for the autotuning library
 import math
 import json, pathlib
 from gpu_roofline.gemm.api import DeviceSpec, KernelConfig

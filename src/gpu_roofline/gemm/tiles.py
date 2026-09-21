@@ -1,4 +1,4 @@
-# src/gemm_lib/tiles.py — tile algebra and constraint checking
+# src/gpu_roofline/gemm/tiles.py — tile algebra and constraint checking
 from __future__ import annotations
 from dataclasses import dataclass
 import sys

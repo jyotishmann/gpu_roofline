@@ -5,7 +5,7 @@ import sys
 from gpu_roofline.harness.timing import benchmark
 from torch.utils.cpp_extension import load_inline
 from gpu_roofline.harness.device import probe_device
-from .sgemm_naive import (assert_sgemm_correct, gemm_bytes_and_flops,
+from gpu_roofline.kernels.sgemm_naive import (assert_sgemm_correct, gemm_bytes_and_flops,
                            persist_level, print_gemm_report, _tf32_off)
 
 _TILED_KERNEL = r"""

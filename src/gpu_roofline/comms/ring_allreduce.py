@@ -1,4 +1,4 @@
-# src/comms/ring_allreduce.py — ring all-reduce (reduce-scatter + all-gather)
+# src/gpu_roofline/comms/ring_allreduce.py — ring all-reduce (reduce-scatter + all-gather)
 import torch
 import json, pathlib
 from gpu_roofline.comms.naive_allreduce import (make_workers, allreduce_bytes_naive,

@@ -1,4 +1,4 @@
-# src/gemm/factory.py — kernel factory and autotune implementation
+# src/gpu_roofline/gemm/factory.py — kernel factory and autotune implementation
 import torch
 from torch.utils.cpp_extension import load_inline
 from gpu_roofline.gemm.api import DeviceSpec, KernelConfig

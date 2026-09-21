@@ -6,7 +6,7 @@ import pathlib
 import torch
 from torch.utils.cpp_extension import load_inline
 from gpu_roofline.harness.device import probe_device
-from .reduction import (make_reducer, assert_reduction_correct,
+from gpu_roofline.kernels.reduction import (make_reducer, assert_reduction_correct,
                         benchmark_reduction, persist_level, _INCLUDES)
 
 

@@ -1,4 +1,4 @@
-# src/comms/naive_allreduce.py — naïve all-reduce + bandwidth model
+# src/gpu_roofline/comms/naive_allreduce.py — naïve all-reduce + bandwidth model
 import time, statistics, math
 import torch
 import sys

@@ -1,4 +1,4 @@
-# src/harness/kv_parity.py — utilisation comparison and closure
+# src/gpu_roofline/harness/kv_parity.py — utilisation comparison and closure
 import json, pathlib, sys
 import torch
 from gpu_roofline.harness.device import probe_device

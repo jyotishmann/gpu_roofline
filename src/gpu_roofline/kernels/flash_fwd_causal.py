@@ -4,7 +4,7 @@ import torch
 from torch.utils.cpp_extension import load_inline
 import sys
 from gpu_roofline.harness.device import probe_device
-from .attn_naive import (assert_attention_correct, naive_hbm_bytes, flash_hbm_bytes,
+from gpu_roofline.kernels.attn_naive import (assert_attention_correct, naive_hbm_bytes, flash_hbm_bytes,
                           attention_flops, benchmark_attention,
                           print_attention_report, persist_result)
 

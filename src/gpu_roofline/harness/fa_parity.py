@@ -1,4 +1,4 @@
-# src/harness/fa_parity.py — SDPA comparison and project closure
+# src/gpu_roofline/harness/fa_parity.py — SDPA comparison and project closure
 import json, pathlib, sys
 import torch
 import torch.nn.functional as F

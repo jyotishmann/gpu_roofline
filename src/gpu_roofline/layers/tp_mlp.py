@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import sys
-sys.path.insert(0, "../../tier0-foundations/p00-primitives/src")
+
 from gpu_roofline.layers.tp_linear import (ColumnParallelLinear, RowParallelLinear,
                                sum_allreduce, partition_weight_column,
                                partition_weight_row)

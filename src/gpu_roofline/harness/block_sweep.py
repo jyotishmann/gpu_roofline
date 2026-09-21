@@ -1,8 +1,8 @@
-# src/harness/block_sweep.py — occupancy-driven block-size sweep
+# src/gpu_roofline/harness/block_sweep.py — occupancy-driven block-size sweep
 
 import torch
 from torch.utils.cpp_extension import load_inline
-from harness.timing import benchmark # ignore[misc]
+from gpu_roofline.harness.timing import benchmark # ignore[misc]
 
 import json
 import pathlib
@@ -10,7 +10,7 @@ from dataclasses import asdict
 
 from functools import partial
 
-from harness.device import probe_device
+from gpu_roofline.harness.device import probe_device
 
 
 def theoretical_occupancy(block: int, blocks_per_sm: int, dev) -> float:

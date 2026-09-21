@@ -1,4 +1,4 @@
-# src/harness/parity.py — cuBLAS parity benchmark and project closure
+# src/gpu_roofline/harness/parity.py — cuBLAS parity benchmark and project closure
 import json
 import pathlib
 import sys

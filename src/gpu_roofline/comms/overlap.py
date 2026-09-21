@@ -1,4 +1,4 @@
-# src/comms/overlap.py — comm/compute overlap demonstration
+# src/gpu_roofline/comms/overlap.py — comm/compute overlap demonstration
 import time, statistics
 import torch
 import sys

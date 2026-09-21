@@ -1,4 +1,4 @@
-# src/harness/transfer.py — PCIe transfer benchmark
+# src/gpu_roofline/harness/transfer.py — PCIe transfer benchmark
 """
 Three-ceiling mental model
   (1) Peak DRAM BW   — kernels; 

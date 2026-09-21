@@ -1,4 +1,4 @@
-# src/harness/device.py — device-probe module
+# src/gpu_roofline/harness/device.py — device-probe module
 import torch
 
 from dataclasses import dataclass, asdict

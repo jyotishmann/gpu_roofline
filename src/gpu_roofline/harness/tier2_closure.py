@@ -1,4 +1,4 @@
-# src/harness/tier2_closure.py — three-way comparison and Tier 2 closure
+# src/gpu_roofline/harness/tier2_closure.py — three-way comparison and Tier 2 closure
 import json, pathlib, sys
 import torch
 from gpu_roofline.harness.device import probe_device

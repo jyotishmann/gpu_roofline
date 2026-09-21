@@ -1,4 +1,4 @@
-# src/gemm/api.py — public API contract (stubs)
+# src/gpu_roofline/gemm/api.py — public API contract (stubs)
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence

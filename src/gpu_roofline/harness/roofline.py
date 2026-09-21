@@ -1,4 +1,4 @@
-# src/harness/roofline.py — assemble the roofline + report.
+# src/gpu_roofline/harness/roofline.py — assemble the roofline + report.
 
 import numpy as np
 import matplotlib

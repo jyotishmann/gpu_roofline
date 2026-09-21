@@ -1,4 +1,4 @@
-# src/harness/climb.py — climb chart + report
+# src/gpu_roofline/harness/climb.py — climb chart + report
 import json
 import pathlib
 import sys

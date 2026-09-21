@@ -6,7 +6,7 @@ import pathlib
 import torch
 from torch.utils.cpp_extension import load_inline
 from gpu_roofline.harness.device import probe_device
-from .reduction import assert_reduction_correct, benchmark_reduction, persist_level, _INCLUDES
+from gpu_roofline.kernels.reduction import assert_reduction_correct, benchmark_reduction, persist_level, _INCLUDES
 
 _WARP_REDUCE = r"""
 __inline__ __device__ float warpReduceSum(float val) {

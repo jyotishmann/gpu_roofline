@@ -2,7 +2,7 @@
 import math
 import torch
 
-from .attn_naive import naive_attention, assert_attention_correct
+from gpu_roofline.kernels.attn_naive import naive_attention, assert_attention_correct
 
 
 # m : float  (scalar per query — running max of attention logits)

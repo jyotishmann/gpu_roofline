@@ -1,4 +1,4 @@
-# src/harness/timing.py — the measurement core
+# src/gpu_roofline/harness/timing.py — the measurement core
 import torch
 from dataclasses import dataclass
 import statistics
@@ -7,8 +7,8 @@ import json
 import pathlib
 from dataclasses import asdict
 
-from harness.device import probe_device
-from kernels.vector_add import add
+from gpu_roofline.harness.device import probe_device
+from gpu_roofline.kernels.vector_add import add
 
 
 def _time_once(fn) -> float:

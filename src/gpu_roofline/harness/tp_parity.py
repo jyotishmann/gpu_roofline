@@ -1,4 +1,4 @@
-# src/harness/tp_parity.py — TP efficiency measurement and project closure
+# src/gpu_roofline/harness/tp_parity.py — TP efficiency measurement and project closure
 import time, statistics, json, pathlib
 import torch
 import sys
