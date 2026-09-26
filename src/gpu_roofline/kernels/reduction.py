@@ -7,7 +7,6 @@ from dataclasses import asdict
 
 import sys
 from gpu_roofline.harness.device import probe_device
-from gpu_roofline.harness.timing import benchmark
 
 from torch.utils.cpp_extension import load_inline
 
@@ -89,6 +88,18 @@ BLOCK = 256
 """
 
 
+def make_cascade_reducer(n: int, grid: int, launch, device: str = "cuda"):
+    """Two-pass cascade: `grid` blocks → grid partials (pass 1), one block → final (pass 2)."""
+    partials = torch.empty(grid, device=device, dtype=torch.float32)
+    final = torch.empty(1, device=device, dtype=torch.float32)
+
+    def reduce(x):
+        launch(x.contiguous(), partials, grid)   # pass 1: chosen grid, grid-stride covers all of n
+        launch(partials, final, 1)               # pass 2: single block reduces the grid partials
+        return final
+    return red
+
+
 # make_reducer with this tile-aware version (default tile=BLOCK)
 def make_reducer(n, launch=_mod.reduce_l1_launch, tile: int = BLOCK, device: str = "cuda"):
     """Two-pass reducer; `tile` = elements one block reduces (BLOCK for L1–3, 2*BLOCK for L4+)."""
@@ -108,6 +119,7 @@ def make_reducer(n, launch=_mod.reduce_l1_launch, tile: int = BLOCK, device: str
 
 
 def benchmark_reduction(name: str, reduce_fn, x: torch.Tensor, dev, iters: int = 100):
+    from gpu_roofline.harness.timing import benchmark
     n = x.numel()
     return benchmark(name, lambda: reduce_fn(x), 4 * n, n, dev, n, iters=iters)
 
@@ -123,6 +135,7 @@ def persist_level(res, level: int, path: str = "benchmarks/p01_results.json") ->
 
 
 if __name__ == "__main__":
+    from gpu_roofline.harness.timing import benchmark
     dev = probe_device()
     reduce = make_reducer(1_000_003)
     assert_reduction_correct(reduce)

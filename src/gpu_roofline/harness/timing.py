@@ -8,7 +8,6 @@ import pathlib
 from dataclasses import asdict
 
 from gpu_roofline.harness.device import probe_device
-from gpu_roofline.kernels.vector_add import add
 
 
 def _time_once(fn) -> float:
@@ -84,6 +83,7 @@ def _save_result(res: BenchResult, path: str = "benchmarks/p00_results.json") ->
 
 
 def run_vector_add_benchmark(dev=None, iters: int = 100) -> BenchResult:
+    from gpu_roofline.kernels.vector_add import add
     dev = dev or probe_device()
     n = int(dev.l2_bytes * 8 / (3 * 4))            # working set ≈ 8× L2 → forces HBM traffic, not cache
     a = torch.randn(n, device="cuda")

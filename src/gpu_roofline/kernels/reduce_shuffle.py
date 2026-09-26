@@ -163,7 +163,7 @@ def run_comparison(dev, n: int | None = None, iters: int = 100):
     x = torch.randn(n, device="cuda")
     candidates = {
         "shuffle_kernel":    _make_shuffle_reducer(n, dev),
-        "level7_cascade":    make_cascade_reducer(n, grid=max(1, 4 * dev.sm_count)),
+        "level7_cascade":    make_cascade_reducer(n, grid=max(1, 4 * dev.sm_count), launch=_mod_shuf.reduce_shuffle_launch),
         "cub_device_reduce": make_cub_reducer(n),
         "torch_sum":         _torch_reducer(),
     }
