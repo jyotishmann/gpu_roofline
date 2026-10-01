@@ -80,9 +80,9 @@ def run_parity_benchmark(dev, N: int = 2048, D: int = 64, iters: int = 50) -> li
             print(f"  {name}: not available on this hardware — skipped")
             continue
         r = benchmark_attention(
-            name, lambda fn=fn: fn(Q, K, V), Q, K, V, N, D, dev, iters=iters
+            name, fn, Q, K, V, N, D, dev, iters=iters
         )
-        rows.append({"name": name, **asdict(r)})
+        rows.append({"name": name, **r})
     return rows
 
 def print_io_ratio_table() -> None:
@@ -112,7 +112,7 @@ def write_parity_report(dev, rows: list[dict],
         "|---|---|---|---|",
     ]
     for r in rows:
-        lines.append(f"| {r['name']} | {r['gflops']:.0f} | {r['eff_bw_gbps']:.0f} GB/s | {r['median_ms']:.2f} |")
+        lines.append(f"| {r['name']} | {r['gflops']:.0f} | {r['naive_bw_gbps']:.0f} GB/s | {r['median_ms']:.2f} |")
     lines += [
         f"\n**IO reduction at N=2048, d=64:** naïve = {naive_hbm_bytes(N,D)/1e6:.0f} MB  "
         f"→  FA = {flash_hbm_bytes(N,D)/1e6:.1f} MB  ({io_ratio(N,D):.0f}× fewer DRAM bytes)\n",

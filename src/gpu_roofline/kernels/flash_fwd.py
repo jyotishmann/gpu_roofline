@@ -110,7 +110,7 @@ void flash_fwd_launch(torch::Tensor Q, torch::Tensor K, torch::Tensor V,
     const float scale = (float)scale_d;
     if      (bkv == 64 && D == 32)  _launch<32, 64>(Q,K,V,O,scale);
     else if (bkv == 64 && D == 64)  _launch<64, 64>(Q,K,V,O,scale);
-    else if (bkv == 64 && D == 128) _launch<128,64>(Q,K,V,O,scale);
+    else if (bkv == 32 && D == 128) _launch<128,32>(Q,K,V,O,scale);
     else TORCH_CHECK(false, "flash_fwd: unsupported (D, BKV); add to dispatch table");
 }
 """
@@ -134,6 +134,9 @@ def flash_fwd(Q: torch.Tensor, K: torch.Tensor, V: torch.Tensor,
         raise NotImplementedError("causal masking added in p03/04")
     N, D = Q.shape
     scale = scale or D ** -0.5
+    # BKV=64 overflows T4's 64KB smem cap when D=128 (65808B > 65536B); use BKV=32 there.
+    if D == 128 and bkv == 64:
+        bkv = 32
     O = torch.zeros(N, D, device=Q.device, dtype=Q.dtype)
     _mod_fa.flash_fwd_launch(Q.contiguous(), K.contiguous(),
                               V.contiguous(), O, scale, bkv)

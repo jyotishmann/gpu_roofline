@@ -120,13 +120,21 @@ def _flash_attn_fwd_autotuned(
              acc, mask=offs_m[:,None] < N)
     tl.store(LSE_ptr + offs_m, m + tl.log(l), mask=offs_m < N)
 
-
 def flash_attn_triton_v1(Q: torch.Tensor, K: torch.Tensor, V: torch.Tensor,
+                          causal: bool = False,
                           scale: float | None = None,
                           BLOCK_M: int = 64, BLOCK_N: int = 64) -> torch.Tensor:
     """Non-causal Triton attention with fixed tile sizes."""
+
+    if causal:
+        raise NotImplementedError("v1 is non-causal only; causal masking added in v2")
     N, D = Q.shape
     scale = scale or D ** -0.5
+    # BLOCK_M=BLOCK_N=64 overflows T4's 64KB smem cap when D=128 (needs 98304B).
+    # Triton stages Q/K/V/acc tiles that scale with D, so larger heads need smaller tiles.
+    if D == 128:
+        BLOCK_M = min(BLOCK_M, 32)
+        BLOCK_N = min(BLOCK_N, 32)
     O   = torch.zeros(N, D, device=Q.device, dtype=Q.dtype)
     LSE = torch.zeros(N,    device=Q.device, dtype=Q.dtype)
     grid = (triton.cdiv(N, BLOCK_M),)   # one program per query tile

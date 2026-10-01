@@ -105,7 +105,7 @@ void flash_fwd_causal_launch(torch::Tensor Q, torch::Tensor K, torch::Tensor V,
     const float scale = (float)scale_d;
     if      (bkv==64 && D==32)  _launch_c<32, 64>(Q,K,V,O,LSE,scale,causal);
     else if (bkv==64 && D==64)  _launch_c<64, 64>(Q,K,V,O,LSE,scale,causal);
-    else if (bkv==64 && D==128) _launch_c<128,64>(Q,K,V,O,LSE,scale,causal);
+    else if (bkv==32 && D==128) _launch_c<128,32>(Q,K,V,O,LSE,scale,causal);
     else TORCH_CHECK(false, "flash_fwd_causal: unsupported (D, BKV)");
 }
 """
@@ -127,6 +127,9 @@ def flash_fwd_causal(Q: torch.Tensor, K: torch.Tensor, V: torch.Tensor,
     """Returns (O, LSE) — output and logsumexp buffer for the backward pass."""
     N, D = Q.shape
     scale = scale or D ** -0.5
+    # BKV=64 overflows T4's 64KB smem cap when D=128 (65808B > 65536B); use BKV=32 there.
+    if D == 128 and bkv == 64:
+        bkv = 32
     O   = torch.zeros(N, D, device=Q.device, dtype=Q.dtype)
     LSE = torch.zeros(N,    device=Q.device, dtype=Q.dtype)
     _mod_c.flash_fwd_causal_launch(Q.contiguous(), K.contiguous(), V.contiguous(),
