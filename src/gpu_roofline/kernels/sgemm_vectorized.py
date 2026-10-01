@@ -120,7 +120,14 @@ def sgemm_vectorized(A, B, alpha=1.0, beta=0.0, C=None):
 
 if __name__ == "__main__":
     dev = probe_device()
-    assert_sgemm_correct(sgemm_vectorized)       # all four cases have K,N divisible by 4 ✓
+    _VEC_SAFE_CASES = [
+    (128, 128, 128, "square 128"),
+    (256, 128, 64,  "non-square 256×128×64"),
+    (4,   4,   4096, "K-accumulation stress (N=4, vectorized-safe)"),
+    (64,  64,  64,  "prime-adjacent — partial tile exercise"),
+    ]
+    assert_sgemm_correct(sgemm_vectorized, cases=_VEC_SAFE_CASES)
+
     N = 2048; M = K = N
     A = torch.randn(M, K, device="cuda")
     B = torch.randn(K, N, device="cuda")

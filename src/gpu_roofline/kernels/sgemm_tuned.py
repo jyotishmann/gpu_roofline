@@ -14,6 +14,14 @@ from gpu_roofline.kernels.sgemm_naive import (assert_sgemm_correct, gemm_bytes_a
 # Configuration space: (WM, WN, BK).  BM = 32*WM, BN = 32*WN (block always 32×32).
 _CANDIDATES = list(itertools.product([2, 4, 8], [2, 4, 8], [8, 16, 32]))
 
+# Single source of truth — must exactly match the C++ dispatch table's if/else chain
+# in _DISPATCH. Any (wm,wn,bk) not in this set has no compiled kernel and will crash.
+_DISPATCH_SUPPORTED = {
+    (2, 2, 8), (2, 2, 16), (2, 2, 32),
+    (4, 4, 8), (4, 4, 16), (4, 4, 32),
+    (8, 8, 8), (8, 8, 16),
+}
+
 _TUNED_KERNEL = r"""
 template<int WM, int WN, int BK>
 __global__ void sgemm_tuned(const float* __restrict__ A, const float* __restrict__ B,
@@ -133,9 +141,18 @@ def run_autotune_sweep(dev, N: int = 2048, iters: int = 20) -> dict:
     bytes_, flops, _ = gemm_bytes_and_flops(M, N, K)
     rows, best = [], None
     for wm, wn, bk in _CANDIDATES:
-        if not is_valid(wm, wn, bk, dev, K): continue
+        if (wm, wn, bk) not in _DISPATCH_SUPPORTED: continue   # skip configs with no compiled kernel
+        if not is_valid(wm, wn, bk, dev, K): continue           # static hw-resource check
         fn = lambda wm=wm, wn=wn, bk=bk: sgemm_tuned(A, B, wm=wm, wn=wn, bk=bk, C=C)
-        r  = benchmark(f"tuned_wm{wm}wn{wn}bk{bk}", fn, bytes_, flops, dev, M*N, iters=iters)
+        try:
+            r = benchmark(f"tuned_wm{wm}wn{wn}bk{bk}", fn, bytes_, flops, dev, M*N, iters=iters)
+        except RuntimeError as e:
+            # Some configs pass the static is_valid() heuristic but still exceed actual
+            # per-block register/smem limits at launch time (e.g. register-file pressure
+            # from an 8x8 accumulator array isn't captured by the wm*wn>64 heuristic).
+            # Skip gracefully rather than crashing the whole sweep.
+            print(f"  [skip] wm={wm} wn={wn} bk={bk}: launch failed ({e})")
+            continue
         rows.append({"wm": wm, "wn": wn, "bk": bk, "bm": wm*32, "bn": wn*32,
                      "smem_kb": smem_bytes(wm,wn,bk)//1024, **asdict(r)})
         if best is None or r.gflops > best["gflops"]: best = rows[-1]

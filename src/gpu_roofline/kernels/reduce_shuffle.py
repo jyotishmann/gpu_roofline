@@ -41,7 +41,7 @@ __global__ void reduce_shuffle(const float* __restrict__ g_in,
     if (lane == 0) warp_sums[warp_id] = sum;
     __syncthreads();                         // the ONE barrier: makes 8 warp sums visible block-wide
     sum = (lane < blockDim.x / WARP_SIZE) ? warp_sums[lane] : 0.0f;
-    if (warp_id == 0) sum = warpReduceSum(sum);   # warp 0 reduces the 8 warp sums → block total
+    if (warp_id == 0) sum = warpReduceSum(sum);   // warp 0 reduces the 8 warp sums -> block total
     if (threadIdx.x == 0) g_out[blockIdx.x] = sum;
 }
 """

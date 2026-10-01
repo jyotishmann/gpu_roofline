@@ -23,15 +23,19 @@ def _tf32_off():
         torch.backends.cuda.matmul.allow_tf32 = prev
 
 
-def assert_sgemm_correct(gemm_fn, atol: float = 1e-3, rtol: float = 1e-3) -> None:
-    """Correctness gate reused across all SGEMM levels: allclose vs torch.mm with TF32 off."""
+def assert_sgemm_correct(gemm_fn, atol: float = 1e-3, rtol: float = 1e-3, cases=None) -> None:
+    """Correctness gate reused across all SGEMM levels: allclose vs torch.mm with TF32 off.
+    
+    `cases` lets kernel-specific callers override the default test shapes — e.g. a
+    vectorized kernel that requires N, K divisible by 4 for float4 alignment."""
     torch.manual_seed(0)
-    cases = [
-        (128, 128, 128, "square 128"),
-        (256, 128, 64,  "non-square 256×128×64"),
-        (1,   1,   4096, "K-accumulation stress"),
-        (64,  64,  64,  "prime-adjacent — partial tile exercise"),
-    ]
+    if cases is None:
+        cases = [
+            (128, 128, 128, "square 128"),
+            (256, 128, 64,  "non-square 256×128×64"),
+            (1,   1,   4096, "K-accumulation stress"),
+            (64,  64,  64,  "prime-adjacent — partial tile exercise"),
+        ]
     with _tf32_off():
         for M, N, K, label in cases:
             A = torch.randn(M, K, device="cuda")
@@ -78,7 +82,6 @@ void sgemm_naive_launch(torch::Tensor A, torch::Tensor B, torch::Tensor C,
     const int lda = (int)(A.stride(0));  // elements between consecutive rows of A
     const int ldb = (int)(B.stride(0));  // elements between consecutive rows of B
     const int ldc = (int)(C.stride(0));  // elements between consecutive rows of C
-    const int BX = 32, BY = 32;
     const dim3 block(BX, BY);
     const dim3 grid((N + BX - 1) / BX, (M + BY - 1) / BY);  // x→cols, y→rows: must match kernel indexing
     sgemm_naive<<<grid, block>>>(

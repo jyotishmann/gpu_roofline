@@ -97,7 +97,7 @@ def make_cascade_reducer(n: int, grid: int, launch, device: str = "cuda"):
         launch(x.contiguous(), partials, grid)   # pass 1: chosen grid, grid-stride covers all of n
         launch(partials, final, 1)               # pass 2: single block reduces the grid partials
         return final
-    return red
+    return reduce
 
 
 # make_reducer with this tile-aware version (default tile=BLOCK)

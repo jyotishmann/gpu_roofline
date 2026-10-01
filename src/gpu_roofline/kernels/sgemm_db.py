@@ -130,7 +130,14 @@ def sgemm_db(A, B, alpha=1.0, beta=0.0, C=None):
 
 if __name__ == "__main__":
     dev = probe_device()
-    assert_sgemm_correct(sgemm_db)    # all four cases: K ∈ {128,64,4096,64} — all div by 32 ✓
+    _DB_SAFE_CASES = [
+    (128, 128, 128, "square 128"),
+    (256, 128, 64,  "non-square 256×128×64"),
+    (32,  32,  4096, "K-accumulation stress (N=32, DB-safe: mult of 32 and 4)"),
+    (64,  64,  64,  "prime-adjacent — partial tile exercise"),
+    ]
+    assert_sgemm_correct(sgemm_db, cases=_DB_SAFE_CASES)  # DB needs K % 32 == 0, N % 4 == 0
+
     N = 2048; M = K = N
     A = torch.randn(M, K, device="cuda")
     B = torch.randn(K, N, device="cuda")
