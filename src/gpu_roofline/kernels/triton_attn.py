@@ -168,7 +168,7 @@ def run_untuned_benchmark(dev):
     K = torch.randn(N, D, device="cuda")
     V = torch.randn(N, D, device="cuda")
     r = benchmark_attention("triton_attn_v1 (BLOCK_M=64, BLOCK_N=64, no autotune)",
-                             lambda: flash_attn_triton_v1(Q, K, V),
+                             flash_attn_triton_v1,
                              Q, K, V, N, D, dev, iters=50)
     print_attention_report(r, dev)
     persist_result(r)
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     for causal in (False, True):
         r = benchmark_attention(
             f"triton_autotuned_causal={causal}",
-            lambda c=causal: flash_attn_triton(Q, K, V, causal=c),
+            lambda Q, K, V, c=causal: flash_attn_triton(Q, K, V, causal=c),
             Q, K, V, N, D, dev, iters=100)
         print_attention_report(r, dev)
         persist_result(r)
