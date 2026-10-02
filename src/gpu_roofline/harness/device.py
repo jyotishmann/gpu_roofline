@@ -36,10 +36,18 @@ _PROBE_CPP = r"""
 std::map<std::string, long long> probe(long long dev) {
     cudaDeviceProp p{};
     cudaGetDeviceProperties(&p, (int)dev);  // the runtime struct carries what torch's Python object omits
+
+    // memoryClockRate and clockRate were removed from cudaDeviceProp in newer CUDA
+    // toolkits (12.9+/13.x) in favour of cudaDeviceGetAttribute. Both return kHz,
+    // same units as the old struct fields, so peak_bandwidth_gbps() needs no change.
+    int mem_clock_khz = 0, core_clock_khz = 0;
+    cudaDeviceGetAttribute(&mem_clock_khz, cudaDevAttrMemoryClockRate, (int)dev);
+    cudaDeviceGetAttribute(&core_clock_khz, cudaDevAttrClockRate, (int)dev);
+
     return {
-        {"mem_clock_khz",     (long long)p.memoryClockRate},
+        {"mem_clock_khz",     (long long)mem_clock_khz},
         {"bus_width_bits",    (long long)p.memoryBusWidth},
-        {"core_clock_khz",    (long long)p.clockRate},
+        {"core_clock_khz",    (long long)core_clock_khz},
         {"l2_bytes",          (long long)p.l2CacheSize},
         {"max_threads_block", (long long)p.maxThreadsPerBlock},
         {"max_threads_sm",    (long long)p.maxThreadsPerMultiProcessor},
