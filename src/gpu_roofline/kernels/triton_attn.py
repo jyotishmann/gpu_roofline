@@ -87,10 +87,14 @@ def _early_config_prune(configs, named_args, **kwargs):
         if est_smem <= SMEM_LIMIT:
             pruned.append(cfg)
     if not pruned:
-        # Fall back to the smallest config rather than leaving the autotuner with nothing
-        pruned = [min(configs, key=lambda c: c.kwargs["BLOCK_M"] * c.kwargs["BLOCK_N"] * c.num_stages)]
+        # Every candidate exceeds the smem budget at this HEAD_DIM — fail loudly rather
+        # than silently returning an infeasible config (which crashes deep inside the
+        # CUDA launch instead of here, where the real cause is visible).
+        raise RuntimeError(
+            f"No autotune config fits in {SMEM_LIMIT}B smem at HEAD_DIM={HEAD_DIM}. "
+            f"Add a smaller BLOCK_M/BLOCK_N config to the configs list."
+        )
     return pruned
-
 
 @triton.autotune(
     configs=[
@@ -100,6 +104,10 @@ def _early_config_prune(configs, named_args, **kwargs):
         triton.Config({"BLOCK_M": 64,  "BLOCK_N": 128}, num_stages=2, num_warps=4),
         triton.Config({"BLOCK_M": 128, "BLOCK_N": 64},  num_stages=3, num_warps=8),
         triton.Config({"BLOCK_M": 64,  "BLOCK_N": 64},  num_stages=3, num_warps=8),
+        # Small-tile fallback for wide heads (D=128): the 6 configs above all exceed
+        # 65536B smem at D=128 (smallest is 98304B). This 32x32 config is the only one
+        # that survives pruning there (4*(32*128+2*32*128*1)=49152B, fits).
+        triton.Config({"BLOCK_M": 32,  "BLOCK_N": 32},  num_stages=1, num_warps=4),
     ],
     key=["N", "HEAD_DIM", "causal"],   # re-run when problem shape or causal flag changes
     prune_configs_by={"early_config_prune": _early_config_prune},
@@ -123,17 +131,23 @@ def _flash_attn_fwd_autotuned(
 
     for kv_start in range(0, N, BLOCK_N):
         # ── Causal: skip entirely-future tiles ────────────────────────────────
-        if causal and kv_start > start_m + BLOCK_M - 1:   # ← 3 lines vs 20 in p03/04 CUDA
-            break
+        # Triton's JIT does not support `break` inside device-code for-loops
+        # (triton.compiler.errors.UnsupportedLanguageConstruct: Break). Instead,
+        # make the whole iteration a no-op for future tiles: load masked-out K/V
+        # (harmless, same cost as any other masked load), then force S to -inf
+        # so softmax/accumulation contribute nothing for this tile.
+        tile_is_future = causal and (kv_start > start_m + BLOCK_M - 1)
         offs_n  = kv_start + tl.arange(0, BLOCK_N)
         kv_mask = offs_n[None, :] < N
         K = tl.load(K_ptr + offs_n[:, None]*HEAD_DIM + offs_d[None,:], mask=offs_n[:,None]<N, other=0.0)
         V = tl.load(V_ptr + offs_n[:, None]*HEAD_DIM + offs_d[None,:], mask=offs_n[:,None]<N, other=0.0)
         S = tl.dot(Q, tl.trans(K))
-        # ── Causal: mask future positions within the diagonal tile ─────────────
+        # ── Causal: mask future positions within the diagonal tile, or the whole tile ──
         if causal:
             causal_mask = offs_m[:, None] >= offs_n[None, :]
             S = tl.where(causal_mask, S, float("-inf"))
+        if tile_is_future:
+            S = tl.full(S.shape, float("-inf"), dtype=S.dtype)   # whole tile contributes nothing
         m_new = tl.maximum(m, tl.max(S, 1))
         sf    = tl.exp(m - m_new)
         P     = tl.exp(S - m_new[:, None])
