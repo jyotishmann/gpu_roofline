@@ -69,6 +69,29 @@ def _flash_attn_fwd_kernel(
     tl.store(out_ptrs, acc, mask=out_mask)
     tl.store(lse_ptrs, lse, mask=offs_m < N)
 
+
+def _early_config_prune(configs, named_args, **kwargs):
+    """Exclude configs whose estimated shared-memory footprint exceeds the device's
+    per-block limit (T4: 65536B). Reverse-engineered from a live OutOfResources error:
+    BLOCK_M=64,BLOCK_N=64,HEAD_DIM=128,num_stages=1 reported "Required: 98304" exactly
+    matching 4*(BLOCK_M*HEAD_DIM + 2*BLOCK_N*HEAD_DIM*num_stages) = 4*(8192+16384)=98304.
+    Q is staged once; K/V are each double(+)-buffered across num_stages for pipelining.
+    """
+    HEAD_DIM = named_args["HEAD_DIM"]
+    SMEM_LIMIT = 65536   # T4 (sm_75) per-block dynamic shared memory cap, bytes
+    pruned = []
+    for cfg in configs:
+        bm, bn = cfg.kwargs["BLOCK_M"], cfg.kwargs["BLOCK_N"]
+        ns = cfg.num_stages
+        est_smem = 4 * (bm * HEAD_DIM + 2 * bn * HEAD_DIM * ns)
+        if est_smem <= SMEM_LIMIT:
+            pruned.append(cfg)
+    if not pruned:
+        # Fall back to the smallest config rather than leaving the autotuner with nothing
+        pruned = [min(configs, key=lambda c: c.kwargs["BLOCK_M"] * c.kwargs["BLOCK_N"] * c.num_stages)]
+    return pruned
+
+
 @triton.autotune(
     configs=[
         triton.Config({"BLOCK_M": 64,  "BLOCK_N": 64},  num_stages=1, num_warps=4),
@@ -79,7 +102,10 @@ def _flash_attn_fwd_kernel(
         triton.Config({"BLOCK_M": 64,  "BLOCK_N": 64},  num_stages=3, num_warps=8),
     ],
     key=["N", "HEAD_DIM", "causal"],   # re-run when problem shape or causal flag changes
+    prune_configs_by={"early_config_prune": _early_config_prune},
 )
+
+
 @triton.jit
 def _flash_attn_fwd_autotuned(
     Q_ptr, K_ptr, V_ptr, O_ptr, LSE_ptr,

@@ -108,14 +108,11 @@ def benchmark_attention(name: str, attn_fn, Q, K, V,
                         N: int, d: int, dev,
                         warmup: int = 10, iters: int = 50) -> dict:
     """Benchmark an attention implementation; report both HBM-traffic and GFLOP/s metrics."""
-    samples = []
-    for _ in range(warmup):
-        attn_fn(Q, K, V)
-    torch.cuda.synchronize()
-    for _ in range(iters):
-        t = time_kernel(lambda: attn_fn(Q, K, V))
-        samples.append(t)
-    med_ms = statistics.median(samples)
+    # time_kernel already handles warmup and multi-sample timing internally —
+    # don't loop around it again, that would re-run the whole benchmark `iters` times.
+    result = time_kernel(lambda: attn_fn(Q, K, V), warmup=warmup, iters=iters)
+    med_ms = result["median_ms"]
+
     nb    = naive_hbm_bytes(N, d)
     fb    = flash_hbm_bytes(N, d)
     flops = attention_flops(N, d)
