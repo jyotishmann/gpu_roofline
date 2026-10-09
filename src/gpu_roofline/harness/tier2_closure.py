@@ -33,20 +33,23 @@ def run_three_way(dev, N: int = 2048, D: int = 64, iters: int = 100) -> list[dic
     K = torch.randn(N, D, device="cuda")
     V = torch.randn(N, D, device="cuda")
 
+
+    # Lambdas accept (Q, K, V) because benchmark_attention calls attn_fn(Q, K, V)
+    # internally — a zero-arg closure over Q,K,V would double-wrap and crash.
     candidates = [
-        ("our_cuda_p03",   lambda: flash_fwd_causal(Q, K, V, causal=False)[0]),
-        ("our_triton_p04", lambda: flash_attn_triton(Q, K, V, causal=False)),
-        ("sdpa_flash",     lambda: sdpa(True,  False, False)(Q, K, V)),
-        ("sdpa_math_fp32", lambda: sdpa(False, True,  False)(Q, K, V)),
+        ("our_cuda_p03",   lambda Q, K, V: flash_fwd_causal(Q, K, V, causal=False)[0]),
+        ("our_triton_p04", lambda Q, K, V: flash_attn_triton(Q, K, V, causal=False)),
+        ("sdpa_flash",     lambda Q, K, V: sdpa(True,  False, False)(Q, K, V)),
+        ("sdpa_math_fp32", lambda Q, K, V: sdpa(False, True,  False)(Q, K, V)),
     ]
 
     results = []
     for name, fn in candidates:
-        if fn() is None:
+        if fn(Q, K, V) is None:
             print(f"  {name}: not available — skipped")
             continue
         r = benchmark_attention(name, fn, Q, K, V, N, D, dev, iters=iters)
-        results.append({"name": name, **asdict(r)})   # BenchResult is a dataclass → asdict()
+        results.append(r)   # r is already a dict (not a dataclass) — no asdict() needed
     return results
 
 

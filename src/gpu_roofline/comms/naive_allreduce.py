@@ -96,7 +96,7 @@ def print_bandwidth_table(dev, Ns=(2, 4, 8), P: int = 1 << 22) -> None:
     print(f"{'N':>4}  {'root link':>12}  {'leaf link':>12}  {'root %':>8}  {'leaf %':>8}")
     print("─" * 54)
     for N in Ns:
-        r = benchmark_allreduce(naive_allreduce, N, P, dev)
+        r = benchmark_allreduce(naive_allreduce, dev, N, P)   # fn, dev, N, P — matches def order
         print(f"{N:>4}  {r['root_bw_gbps']:>10.1f} GB/s  {r['leaf_bw_gbps']:>10.1f} GB/s  "
               f"{r['root_pct_peak']:>7.1f}%  {r['leaf_pct_peak']:>7.1f}%")
     print("\nNote: root link is saturated; leaf links are ~1/N of that. "
