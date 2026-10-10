@@ -102,4 +102,4 @@ if __name__ == "__main__":
     requests = generate_requests(n_short=20, n_long=5)
     result = simulate_serving(requests, max_pages=256, max_batch=8)
     print(f"Simulation complete: {result}")
-    print("\Next part will compare paged vs pre-allocated utilisation on the same workload.")
+    print("\nNext part will compare paged vs pre-allocated utilisation on the same workload.")

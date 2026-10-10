@@ -30,7 +30,7 @@ def DeviceSpec_from_probe() -> DeviceSpec:
     return DeviceSpec(
         name=dev.name, peak_fp32_gflops=dev.peak_fp32_gflops,
         peak_bw_gbps=dev.peak_bw_gbps, ridge_flop_per_byte=dev.ridge_flop_per_byte,
-        smem_per_sm_bytes=dev.smem_sm_bytes, regs_per_sm=dev.regs_block,
+        smem_per_sm_bytes=dev.smem_sm_bytes, regs_per_sm=dev.regs_sm,
         max_threads_sm=dev.max_threads_sm, cc=dev.cc,
     )
 

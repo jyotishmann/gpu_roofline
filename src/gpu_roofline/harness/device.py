@@ -36,6 +36,8 @@ _PROBE_CPP = r"""
 std::map<std::string, long long> probe(long long dev) {
     cudaDeviceProp p{};
     cudaGetDeviceProperties(&p, (int)dev);  // the runtime struct carries what torch's Python object omits
+    int regs_per_sm = 0;
+    cudaDeviceGetAttribute(&regs_per_sm, cudaDevAttrMaxRegistersPerMultiprocessor, (int)dev);
 
     // memoryClockRate and clockRate were removed from cudaDeviceProp in newer CUDA
     // toolkits (12.9+/13.x) in favour of cudaDeviceGetAttribute. Both return kHz,
@@ -55,6 +57,7 @@ std::map<std::string, long long> probe(long long dev) {
         {"smem_block_bytes",  (long long)p.sharedMemPerBlock},
         {"smem_sm_bytes",     (long long)p.sharedMemPerMultiprocessor},
         {"regs_block",        (long long)p.regsPerBlock},
+        {"regs_sm",           (long long)regs_per_sm},
     };
 }
 
@@ -122,6 +125,10 @@ class DeviceInfo:
     peak_bw_gbps: float
     peak_fp32_gflops: float
     ridge_flop_per_byte: float
+    smem_block_bytes: int
+    smem_sm_bytes: int
+    regs_block: int
+    regs_sm: int
 
 
 def probe_device(index: int = 0) -> DeviceInfo:
@@ -140,6 +147,8 @@ def probe_device(index: int = 0) -> DeviceInfo:
         max_threads_block=r["max_threads_block"], max_threads_sm=r["max_threads_sm"],
         warp_size=r["warp_size"], peak_bw_gbps=bw, peak_fp32_gflops=fp32,
         ridge_flop_per_byte=fp32 / bw,   # roofline corner: kernels left of this are bandwidth-bound
+        smem_block_bytes=r["smem_block_bytes"], smem_sm_bytes=r["smem_sm_bytes"],
+        regs_block=r["regs_block"], regs_sm=r["regs_sm"],
     )
 
 
