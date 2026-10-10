@@ -16,13 +16,24 @@ __global__ void gemm_lib_kernel(const float* __restrict__ A, const float* __rest
     extern __shared__ float smem[];
     float* As = smem; float* Bs = smem + BM * BK;
     const int ty = threadIdx.y, tx = threadIdx.x, tid = ty*32+tx;
-    float C_reg[WM][WN] = {{}};
+    float C_reg[WM][WN] = {{}};    
+    constexpr int A_F4 = BM*BK/4, B_F4 = BK*BN/4;       // float4 loads per tile (loop-invariant)
     for (int k_base = 0; k_base < K; k_base += BK) {{
-        const int ar=tid/(BK/4), ac4=tid%(BK/4), br=tid/(BN/4), bc4=tid%(BN/4);
-        int ga=blockIdx.y*BM+ar, ka=k_base+ac4*4;
-        *(float4*)(&As[ar*BK+ac4*4]) = (ga<M && ka+3<K)?*(const float4*)(&A[ga*lda+ka]):make_float4(0,0,0,0);
-        int gb=k_base+br, kb=blockIdx.x*BN+bc4*4;
-        *(float4*)(&Bs[br*BN+bc4*4]) = (gb<K && kb+3<N)?*(const float4*)(&B[gb*ldb+kb]):make_float4(0,0,0,0);
+        // Strided cooperative load: thread tid handles idx = tid, tid+1024, ...
+        // so any BM/BN/BK stays inside the tile (the old one-float4-per-thread
+        // version only fit a tile of exactly 4096 floats).
+        for (int idx = tid; idx < A_F4; idx += 1024) {{
+            const int ar = idx/(BK/4), ac4 = idx%(BK/4);
+            const int ga = blockIdx.y*BM+ar, ka = k_base+ac4*4;
+            *(float4*)(&As[ar*BK+ac4*4]) = (ga<M && ka+3<K)
+                ? *(const float4*)(&A[ga*lda+ka]) : make_float4(0,0,0,0);
+        }}
+        for (int idx = tid; idx < B_F4; idx += 1024) {{
+            const int br = idx/(BN/4), bc4 = idx%(BN/4);
+            const int gb = k_base+br, kb = blockIdx.x*BN+bc4*4;
+            *(float4*)(&Bs[br*BN+bc4*4]) = (gb<K && kb+3<N)
+                ? *(const float4*)(&B[gb*ldb+kb]) : make_float4(0,0,0,0);
+        }}
         __syncthreads();
         for (int k=0;k<BK;++k) {{
             float a[WM],b[WN];
