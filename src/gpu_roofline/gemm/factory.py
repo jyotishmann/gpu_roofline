@@ -9,7 +9,7 @@ from gpu_roofline.gemm.tiles import enumerate_candidate_configs
 
 _KERNEL_TEMPLATE = r"""
 template<int WM, int WN, int BK>
-__global__ void gemm_lib_kernel(const float* __restrict__ A, const float* __restrict__ B,
+__global__ void __launch_bounds__(1024) gemm_lib_kernel(const float* __restrict__ A, const float* __restrict__ B,
                                   float* __restrict__ C, int M, int N, int K,
                                   float alpha, float beta, int lda, int ldb, int ldc) {{
     constexpr int BM = WM * 32, BN = WN * 32;
@@ -94,23 +94,31 @@ def autotune(dev: DeviceSpec, M: int, N: int, K: int,
         return _autotune_cache[key]
     candidates = predict_configs(dev, M, N, K, top_k=5)
     A = torch.randn(M, K, device="cuda"); B = torch.randn(K, N, device="cuda")
-    best_gf, best_cfg = -1.0, candidates[0]
+    
+    best_gf, best_cfg = -1.0, None
     for cfg in candidates:
-        mod = compile_config(cfg)
-        C   = torch.zeros(M, N, device="cuda")
-        for _ in range(warmup):
-            mod.gemm_lib_launch(A.contiguous(), B.contiguous(), C, 1.0, 0.0,
+        try:
+            mod = compile_config(cfg)
+            C = torch.zeros(M, N, device="cuda")
+            for _ in range(warmup):
+                mod.gemm_lib_launch(A.contiguous(), B.contiguous(), C, 1.0, 0.0,
                                  cfg.BM, cfg.BN, cfg.BK, cfg.WM, cfg.WN)
-        torch.cuda.synchronize()
-        ts = []
-        for _ in range(iters):
-            torch.cuda.synchronize(); t0 = time.perf_counter()
-            mod.gemm_lib_launch(A.contiguous(), B.contiguous(), C, 1.0, 0.0,
+            torch.cuda.synchronize()
+            ts = []
+            for _ in range(iters):
+                torch.cuda.synchronize(); t0 = time.perf_counter()
+                mod.gemm_lib_launch(A.contiguous(), B.contiguous(), C, 1.0, 0.0,
                                  cfg.BM, cfg.BN, cfg.BK, cfg.WM, cfg.WN)
-            torch.cuda.synchronize(); ts.append(time.perf_counter() - t0)
-        gf = 2*M*N*K / (statistics.median(ts) * 1e9)
-        if gf > best_gf:
-            best_gf, best_cfg = gf, cfg
+                torch.cuda.synchronize(); ts.append(time.perf_counter() - t0)
+            gf = 2*M*N*K / (statistics.median(ts) * 1e9)
+        except RuntimeError as e:        # AcceleratorError is a RuntimeError subclass
+            print(f"  [skip] {cfg}: {str(e).splitlines()[0]}")
+            continue
+        print(f"  {cfg}: {gf:.0f} GFLOP/s")
+        if gf > best_gf: best_gf, best_cfg = gf, cfg
+    if best_cfg is None:
+       raise RuntimeError(f"no launchable config among {len(candidates)} candidates")    
+
     _autotune_cache[key] = best_cfg
     print(f"[autotuned] {dev.name} M={M} N={N} K={K} → {best_cfg}  {best_gf:.0f} GFLOP/s")
     return best_cfg
